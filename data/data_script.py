@@ -50,7 +50,7 @@ def generate_dataset_chunked(
 
 
 # Configuration
-N_SAMPLES = 1000000
+N_SAMPLES = 10000000
 OUTPUT_FILE = "data_sample.csv"
 CHUNK_SIZE = 100000
 
