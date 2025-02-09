@@ -5,7 +5,8 @@ pytest-cov
 black
 isort
 flake8
-python-dotenv
-memory-profiler
-line-profiler
 httpx
+pandas
+numpy
+dask[dataframe]
+tqdm
