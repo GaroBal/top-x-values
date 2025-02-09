@@ -2,7 +2,9 @@ import numpy as np
 from tqdm import tqdm
 
 
-def generate_dataset_chunked(n_samples: int, output_file: str, chunk_size: int = 100000):
+def generate_dataset_chunked(
+    n_samples: int, output_file: str, chunk_size: int = 100000
+):
     """Generate dataset in chunks with improved memory and performance efficiency"""
 
     id_range_min = 10000000
@@ -17,30 +19,32 @@ def generate_dataset_chunked(n_samples: int, output_file: str, chunk_size: int =
 
     rng = np.random.default_rng()
 
-    with open(output_file, 'w', buffering=8192) as f:
-        for chunk_start in tqdm(range(0, n_samples, chunk_size), desc="Generating chunks"):
+    with open(output_file, "w", buffering=8192) as f:
+        for chunk_start in tqdm(
+            range(0, n_samples, chunk_size), desc="Generating chunks"
+        ):
             chunk_size_actual = min(chunk_size, n_samples - chunk_start)
 
             # Keep the original unique ID generation method
             chunk_ids = rng.choice(
                 np.arange(id_range_min, id_range_max + 1),
                 size=chunk_size_actual,
-                replace=False
+                replace=False,
             )
 
             # Generate values
             values = rng.integers(
-                value_range_min,
-                value_range_max,
-                size=chunk_size_actual
+                value_range_min, value_range_max, size=chunk_size_actual
             )
 
             # Use numpy's fast batch writing instead of string formatting
-            np.savetxt(f,
-                       np.column_stack((chunk_ids, values)),
-                       fmt='%d_%d',
-                       delimiter='',
-                       newline='\n')
+            np.savetxt(
+                f,
+                np.column_stack((chunk_ids, values)),
+                fmt="%d_%d",
+                delimiter="",
+                newline="\n",
+            )
 
             del chunk_ids, values
 
@@ -58,11 +62,11 @@ debug_pairs = [
     ("199999999", 110000001),
     ("299999999", 1110000001),
     ("399999999", 1110000001),
-    ("499999999", 110000001)
+    ("499999999", 110000001),
 ]
 
 print("Adding debug entries...")
-with open(OUTPUT_FILE, 'a', buffering=8192) as f:
+with open(OUTPUT_FILE, "a", buffering=8192) as f:
     debug_lines = []
     for id_, value in debug_pairs:
         debug_lines.append(f"{id_}_{value}\n")
