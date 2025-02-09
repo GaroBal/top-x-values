@@ -43,7 +43,7 @@ jobs:
           name: Run tests
           command: |
             . venv/bin/activate
-            pytest
+            python -m unittest discover -s tests
 
 workflows:
   version: 2
