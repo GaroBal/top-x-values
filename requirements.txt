@@ -11,3 +11,4 @@ dask[distributed]
 tqdm
 psutil
 pyarrow
+snakeviz
