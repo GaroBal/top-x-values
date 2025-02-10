@@ -37,6 +37,11 @@
     python3 main.py
     ```
 
+3. To make a request to the application, use the following command:
+    ```sh
+    curl -L 'http://localhost:8000/api/top-values?x=10'
+    ```
+
 ### Running Tests
 
 1. To run the tests, use the following command:
@@ -63,5 +68,5 @@
 
 1. To visualize the performance of the application, use the following command:
     ```sh
-    snakeviz profiles/get_top_values_XXXXXXX.stats
+    snakeviz profiles/<timestamp>/get_top_values.stats
     ```
