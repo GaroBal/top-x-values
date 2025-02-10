@@ -15,7 +15,7 @@ def get():
 
 @router.get("/top-values/", response_model=List[int])
 @profile_function
-async def get_top_values(
+def get_top_values(
     x: int = Query(..., gt=0, description="Number of top values to return"),
     data_path: str = Query(
         "data/data_sample.parquet", description="Path to the data file"

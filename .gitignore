@@ -3,3 +3,4 @@ venv
 .DS_Store
 /data/data_sample.parquet
 /profiles
+/tests/profiles

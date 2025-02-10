@@ -38,8 +38,8 @@ def profile_function(func):
     """Decorator for profiling individual functions."""
 
     @functools.wraps(func)
-    async def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs):
         with profile_context(func.__name__):
-            return await func(*args, **kwargs)
+            return func(*args, **kwargs)
 
     return wrapper
