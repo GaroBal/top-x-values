@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import psutil
 import pyarrow as pa
@@ -16,6 +17,10 @@ def get_optimal_chunk_size(n_entries: int, safety_factor: float = 0.5) -> int:
 
 def generate_dataset_chunked(n_entries: int, output_file: str):
     """Generate dataset in chunks directly to Parquet format with memory-aware chunking"""
+    # Delete existing file if it exists
+    if os.path.exists(output_file):
+        os.remove(output_file)
+
     chunk_size = get_optimal_chunk_size(n_entries)
     print(f"Using chunk size of {chunk_size:,} based on available memory")
 
@@ -91,10 +96,15 @@ def generate_dataset_chunked(n_entries: int, output_file: str):
             writer.close()
 
 
-# Configuration
-N_ENTRIES = 10000000
-OUTPUT_FILE = "data_sample.parquet"
+# Configuration for different dataset sizes
+datasets = {
+    "small": 1000000,
+    "medium": 10000000,
+    "large": 100000000,
+}
 
-print("Starting dataset generation...")
-generate_dataset_chunked(N_ENTRIES, OUTPUT_FILE)
-print(f"Generated debug entries + {N_ENTRIES} entries to {OUTPUT_FILE}")
+for size, n_entries in datasets.items():
+    output_file = f"data/data_sample_{size}.parquet"
+    print(f"Starting dataset generation for {size} dataset...")
+    generate_dataset_chunked(n_entries, output_file)
+    print(f"Generated {size} dataset with {n_entries} entries to {output_file}")
