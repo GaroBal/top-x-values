@@ -5,7 +5,7 @@ from typing import List, Optional
 from dask.distributed import Client
 
 from app.exceptions import DataProcessingError, DataValidationError
-from app.utils import validate_and_extract_value, read_dataframe
+from app.utils import read_dataframe, validate_and_extract_value
 
 
 class DataService:
@@ -42,7 +42,6 @@ class DataService:
         except Exception as e:
             raise DataProcessingError(f"Failed to initialize Dask client: {str(e)}")
 
-
     def get_top_values(self, x: int) -> List[int]:
         """
         Get Top X Values using Dask's nlargest functionality.
@@ -54,7 +53,9 @@ class DataService:
             List of top X IDs
         """
         try:
-            df = read_dataframe(data_path=self.data_path, partition_size=self.partition_size)
+            df = read_dataframe(
+                data_path=self.data_path, partition_size=self.partition_size
+            )
 
             # Add computed value column with proper error handling
             df["value"] = df["raw_data"].map(
@@ -62,13 +63,10 @@ class DataService:
             )
 
             # First get top X values per partition
-            per_partition_tops = df.map_partitions(
-                lambda pdf: pdf.nlargest(x, "value")
-            )
+            per_partition_tops = df.map_partitions(lambda pdf: pdf.nlargest(x, "value"))
 
             # Then get global top X from the per-partition results
             top_rows = per_partition_tops.nlargest(x, "value").compute()
-
 
             # Extract and validate IDs
             result = []

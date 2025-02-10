@@ -1,10 +1,11 @@
-import unittest
-import pandas as pd
-import numpy as np
-from pathlib import Path
-import tempfile
 import shutil
+import tempfile
+import unittest
+from pathlib import Path
 from unittest.mock import patch
+
+import numpy as np
+import pandas as pd
 
 from app.exceptions import DataProcessingError
 from app.service import DataService
@@ -22,8 +23,12 @@ class TestDataService(unittest.TestCase):
         n_rows = 1000
 
         # Generate random IDs and values
-        ids = np.arange(10000000, 10000000 + n_rows - 10)  # Reserve space for our explicit entries
-        values = np.random.randint(1, 800, size=len(ids))  # Lower max value for random entries
+        ids = np.arange(
+            10000000, 10000000 + n_rows - 10
+        )  # Reserve space for our explicit entries
+        values = np.random.randint(
+            1, 800, size=len(ids)
+        )  # Lower max value for random entries
 
         # Create explicit high-value entries that should always be at the top
         explicit_pairs = [
@@ -51,13 +56,13 @@ class TestDataService(unittest.TestCase):
         raw_data = [f"{id_}_{value}" for id_, value in zip(all_ids, all_values)]
 
         # Create DataFrame and save as parquet
-        df = pd.DataFrame({
-            'raw_data': raw_data
-        })
+        df = pd.DataFrame({"raw_data": raw_data})
         df.to_parquet(cls.test_data_path)
 
         # Store known values for testing
-        cls.known_values = sorted([(value, id_) for id_, value in zip(all_ids, all_values)], reverse=True)
+        cls.known_values = sorted(
+            [(value, id_) for id_, value in zip(all_ids, all_values)], reverse=True
+        )
 
     @classmethod
     def tearDownClass(cls):
@@ -82,7 +87,7 @@ class TestDataService(unittest.TestCase):
         with self.assertRaises(ValueError):
             DataService("nonexistent.parquet")
 
-    @patch('app.service.Client')
+    @patch("app.service.Client")
     def test_init_client_error(self, mock_client):
         """Test handling of Dask client initialization error."""
         mock_client.side_effect = Exception("Client initialization failed")
@@ -109,14 +114,16 @@ class TestDataService(unittest.TestCase):
         """Test handling of duplicate values."""
         # Create temporary data with duplicate values
         temp_path = Path(self.test_dir) / "test_duplicates.parquet"
-        df = pd.DataFrame({
-            'raw_data': [
-                '10000001_100',
-                '10000002_100',  # Same value as above
-                '10000003_50',
-                '10000004_25'
-            ]
-        })
+        df = pd.DataFrame(
+            {
+                "raw_data": [
+                    "10000001_100",
+                    "10000002_100",  # Same value as above
+                    "10000003_50",
+                    "10000004_25",
+                ]
+            }
+        )
         df.to_parquet(temp_path)
 
         service = DataService(str(temp_path))
@@ -127,10 +134,8 @@ class TestDataService(unittest.TestCase):
         self.assertTrue(all(id_ in [10000001, 10000002] for id_ in result))
         service.__del__()
 
-
     def test_get_top_values_success_large_x(self):
         """Test requesting more values than available in dataset."""
         x = 2000  # Larger than our test dataset
         result = self.service.get_top_values(x)
         self.assertEqual(len(result), min(x, len(self.known_values)))
-

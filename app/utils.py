@@ -1,6 +1,8 @@
-from app.exceptions import DataValidationError, DataProcessingError
-import dask.dataframe as dd
 from pathlib import Path
+
+import dask.dataframe as dd
+
+from app.exceptions import DataProcessingError, DataValidationError
 
 
 def validate_and_extract_value(raw_data: str) -> int:
@@ -34,8 +36,6 @@ def read_dataframe(data_path: Path, partition_size: str) -> dd.DataFrame:
         Dask DataFrame
     """
     try:
-        return dd.read_parquet(
-            data_path, engine="pyarrow", blocksize=partition_size
-        )
+        return dd.read_parquet(data_path, engine="pyarrow", blocksize=partition_size)
     except Exception as e:
         raise DataProcessingError(f"Failed to read parquet file: {str(e)}")
