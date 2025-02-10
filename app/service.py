@@ -54,22 +54,26 @@ class DataService:
             List of top X IDs
         """
         try:
-            with profile_context("get_top_values_processing"):
+            with profile_context("read_dataframe"):
                 df = read_dataframe(
                     data_path=self.data_path, partition_size=self.partition_size
                 )
 
+            with profile_context("compute_value_column"):
                 # Add computed value column with proper error handling
                 df["value"] = df["raw_data"].map(
                     validate_and_extract_value, meta=("value", "int64")
                 )
 
+            with profile_context("partition_tops"):
                 # First get top X values per partition
                 per_partition_tops = df.map_partitions(lambda pdf: pdf.nlargest(x, "value"))
 
+            with profile_context("global_tops"):
                 # Then get global top X from the per-partition results
                 top_rows = per_partition_tops.nlargest(x, "value").compute()
 
+            with profile_context("extract_ids"):
                 # Extract and validate IDs
                 result = []
                 for raw_data in top_rows["raw_data"]:
