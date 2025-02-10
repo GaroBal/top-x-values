@@ -1,13 +1,15 @@
 import unittest
-from fastapi.testclient import TestClient
 from unittest.mock import Mock, patch
+
+from fastapi.testclient import TestClient
+
 from main import app
 
 
 class TestHandler(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
-        self.patcher = patch('app.profiling.profile_context', lambda x: x)
+        self.patcher = patch("app.profiling.profile_context", lambda x: x)
         self.patcher.start()
 
     def tearDown(self):
@@ -18,7 +20,7 @@ class TestHandler(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), "pong")
 
-    @patch('app.handler.DataService')
+    @patch("app.handler.DataService")
     def test_top_values_endpoint_success(self, mock_service):
         # Setup mock
         mock_instance = Mock()
@@ -32,7 +34,7 @@ class TestHandler(unittest.TestCase):
         self.assertEqual(response.json(), [5, 4, 3])
         mock_instance.get_top_values.assert_called_once_with(3)
 
-    @patch('app.handler.DataService')
+    @patch("app.handler.DataService")
     def test_top_values_with_custom_path(self, mock_service):
         # Setup mock
         mock_instance = Mock()
@@ -46,7 +48,7 @@ class TestHandler(unittest.TestCase):
         self.assertEqual(response.json(), [10, 9])
         mock_service.assert_called_once_with(data_path="data.parquet")
 
-    @patch('app.handler.DataService')
+    @patch("app.handler.DataService")
     def test_top_values_default_path(self, mock_service):
         # Setup mock
         mock_instance = Mock()
