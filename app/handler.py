@@ -1,13 +1,17 @@
 from typing import List
+
 from fastapi import APIRouter, Query
-from app.service import DataService
+
 from app.profiling import profile_function
+from app.service import DataService
 
 router = APIRouter()
+
 
 @router.get("/ping")
 def get():
     return "pong"
+
 
 @router.get("/top-values/", response_model=List[int])
 @profile_function

@@ -1,9 +1,8 @@
 import cProfile
 import functools
-import time
-from pathlib import Path
 from contextlib import contextmanager
 from datetime import datetime
+from pathlib import Path
 
 PROFILE_DIR = Path("profiles")
 PROFILE_DIR.mkdir(exist_ok=True)
@@ -21,7 +20,7 @@ def get_run_dir():
 def profile_context(filename: str):
     """Context manager for profiling code blocks."""
     # Get/create the run directory on first profile of a request
-    if not hasattr(profile_context, 'current_run_dir'):
+    if not hasattr(profile_context, "current_run_dir"):
         profile_context.current_run_dir = get_run_dir()
 
     profiler = cProfile.Profile()

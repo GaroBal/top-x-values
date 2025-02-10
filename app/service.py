@@ -5,8 +5,8 @@ from typing import List, Optional
 from dask.distributed import Client
 
 from app.exceptions import DataProcessingError, DataValidationError
-from app.utils import read_dataframe, validate_and_extract_value
 from app.profiling import profile_context
+from app.utils import read_dataframe, validate_and_extract_value
 
 
 class DataService:
@@ -67,7 +67,9 @@ class DataService:
 
             with profile_context("partition_tops"):
                 # First get top X values per partition
-                per_partition_tops = df.map_partitions(lambda pdf: pdf.nlargest(x, "value"))
+                per_partition_tops = df.map_partitions(
+                    lambda pdf: pdf.nlargest(x, "value")
+                )
 
             with profile_context("global_tops"):
                 # Then get global top X from the per-partition results
