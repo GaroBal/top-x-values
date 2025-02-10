@@ -1,75 +1,100 @@
 import numpy as np
+import psutil
+import pyarrow as pa
+import pyarrow.parquet as pq
 from tqdm import tqdm
 
 
-def generate_dataset_chunked(
-    n_samples: int, output_file: str, chunk_size: int = 100000
-):
-    """Generate dataset in chunks with improved memory and performance efficiency"""
+def get_optimal_chunk_size(n_entries: int, safety_factor: float = 0.5) -> int:
+    """Calculate optimal chunk size based on available system memory."""
+    available_memory = psutil.virtual_memory().available
+    bytes_per_sample = 50  # Conservative estimate for string bytes
+    max_entries_in_memory = int((available_memory * safety_factor) / bytes_per_sample)
+    chunk_size = min(max_entries_in_memory, n_entries)
+    return max(min(chunk_size, n_entries), 10000)
 
-    id_range_min = 10000000
-    id_range_max = 99999999
-    value_range_min = 10
-    value_range_max = 10000001
 
-    # Calculate total possible IDs
-    total_possible_ids = id_range_max - id_range_min + 1
-    if n_samples > total_possible_ids:
-        raise ValueError("Requested samples exceed possible unique IDs")
+def generate_dataset_chunked(n_entries: int, output_file: str):
+    """Generate dataset in chunks directly to Parquet format with memory-aware chunking"""
+    chunk_size = get_optimal_chunk_size(n_entries)
+    print(f"Using chunk size of {chunk_size:,} based on available memory")
 
     rng = np.random.default_rng()
+    writer = None
 
-    with open(output_file, "w", buffering=8192) as f:
+    # Define maximum value to be slightly less than debug values
+    max_int64 = np.iinfo(np.int64).max
+    max_value = max_int64 - 10  # Ensuring generated values are less than debug values
+
+    # Create debug pairs first
+    debug_pairs_start = [
+        f"{max_int64}_{max_int64}",
+        f"{max_int64 - 1}_{max_int64 - 1}",
+        f"{max_int64 - 2}_{max_int64 - 2}",
+        f"{max_int64 - 3}_{max_int64 - 3}",
+    ]
+
+    debug_pairs_end = [
+        f"{max_int64 - 4}_{max_int64 -4}",
+        f"{max_int64 - 5}_{max_int64 - 5}",
+        f"{max_int64 - 6}_{max_int64 - 6}",
+        f"{max_int64 - 7}_{max_int64 - 7}",
+    ]
+
+    try:
+        # Start with debug entries
+        debug_table_start = pa.Table.from_arrays(
+            [pa.array(debug_pairs_start)], names=["raw_data"]
+        )
+
+        # Initialize writer with debug entries
+        writer = pq.ParquetWriter(
+            output_file, debug_table_start.schema, write_statistics=False
+        )
+        writer.write_table(debug_table_start)
+
+        # Now generate and write the main data in chunks
         for chunk_start in tqdm(
-            range(0, n_samples, chunk_size), desc="Generating chunks"
+            range(0, n_entries, chunk_size), desc="Generating chunks"
         ):
-            chunk_size_actual = min(chunk_size, n_samples - chunk_start)
+            chunk_size_actual = min(chunk_size, n_entries - chunk_start)
 
-            # Keep the original unique ID generation method
-            chunk_ids = rng.choice(
-                np.arange(id_range_min, id_range_max + 1),
-                size=chunk_size_actual,
-                replace=False,
+            # Generate sequential IDs for this chunk
+            chunk_ids = np.arange(
+                chunk_start + 1, chunk_start + chunk_size_actual + 1  # Start from 1
             )
 
-            # Generate values
-            values = rng.integers(
-                value_range_min, value_range_max, size=chunk_size_actual
+            # Generate random values with controlled maximum
+            values = rng.integers(1, max_value, size=chunk_size_actual)
+
+            # Create combined id_value strings
+            id_value = np.char.add(
+                np.char.add(chunk_ids.astype(str), np.full(chunk_size_actual, "_")),
+                values.astype(str),
             )
 
-            # Use numpy's fast batch writing instead of string formatting
-            np.savetxt(
-                f,
-                np.column_stack((chunk_ids, values)),
-                fmt="%d_%d",
-                delimiter="",
-                newline="\n",
-            )
+            # Convert to Arrow array and create table
+            table = pa.Table.from_arrays([pa.array(id_value)], names=["raw_data"])
+            writer.write_table(table)
 
-            del chunk_ids, values
+            # Clean up memory
+            del chunk_ids, values, id_value, table
+
+            # Write debug pairs end
+            debug_table_end = pa.Table.from_arrays(
+                [pa.array(debug_pairs_end)], names=["raw_data"]
+            )
+            writer.write_table(debug_table_end)
+
+    finally:
+        if writer:
+            writer.close()
 
 
 # Configuration
-N_SAMPLES = 10000000
-OUTPUT_FILE = "data_sample.csv"
-CHUNK_SIZE = 100000
+N_ENTRIES = 10000000
+OUTPUT_FILE = "data_sample.parquet"
 
 print("Starting dataset generation...")
-generate_dataset_chunked(N_SAMPLES, OUTPUT_FILE, CHUNK_SIZE)
-
-# Debug entries
-debug_pairs = [
-    ("199999999", 110000001),
-    ("299999999", 1110000001),
-    ("399999999", 1110000001),
-    ("499999999", 110000001),
-]
-
-print("Adding debug entries...")
-with open(OUTPUT_FILE, "a", buffering=8192) as f:
-    debug_lines = []
-    for id_, value in debug_pairs:
-        debug_lines.append(f"{id_}_{value}\n")
-    f.writelines(debug_lines)
-
-print(f"Generated {N_SAMPLES} samples + debug entries to {OUTPUT_FILE}")
+generate_dataset_chunked(N_ENTRIES, OUTPUT_FILE)
+print(f"Generated debug entries + {N_ENTRIES} entries to {OUTPUT_FILE}")
