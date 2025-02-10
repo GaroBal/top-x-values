@@ -5,6 +5,7 @@ from typing import List, Optional
 from dask.distributed import Client
 
 from app.exceptions import DataProcessingError, DataValidationError
+from app.profiling import profile_context
 from app.utils import read_dataframe, validate_and_extract_value
 
 
@@ -53,37 +54,44 @@ class DataService:
             List of top X IDs
         """
         try:
-            df = read_dataframe(
-                data_path=self.data_path, partition_size=self.partition_size
-            )
+            with profile_context("read_dataframe"):
+                df = read_dataframe(
+                    data_path=self.data_path, partition_size=self.partition_size
+                )
 
-            # Add computed value column with proper error handling
-            df["value"] = df["raw_data"].map(
-                validate_and_extract_value, meta=("value", "int64")
-            )
+            with profile_context("compute_value_column"):
+                # Add computed value column with proper error handling
+                df["value"] = df["raw_data"].map(
+                    validate_and_extract_value, meta=("value", "int64")
+                )
 
-            # First get top X values per partition
-            per_partition_tops = df.map_partitions(lambda pdf: pdf.nlargest(x, "value"))
+            with profile_context("partition_tops"):
+                # First get top X values per partition
+                per_partition_tops = df.map_partitions(
+                    lambda pdf: pdf.nlargest(x, "value")
+                )
 
-            # Then get global top X from the per-partition results
-            top_rows = per_partition_tops.nlargest(x, "value").compute()
+            with profile_context("global_tops"):
+                # Then get global top X from the per-partition results
+                top_rows = per_partition_tops.nlargest(x, "value").compute()
 
-            # Extract and validate IDs
-            result = []
-            for raw_data in top_rows["raw_data"]:
-                parts = raw_data.split("_")
-                if len(parts) != 2:
-                    raise DataValidationError(
-                        f"Invalid data format. Expected 'id_value', got '{raw_data}'"
-                    )
-                try:
-                    result.append(int(parts[0]))
-                except ValueError:
-                    raise DataValidationError(
-                        f"Invalid ID format in '{raw_data}': expected integer"
-                    )
+            with profile_context("extract_ids"):
+                # Extract and validate IDs
+                result = []
+                for raw_data in top_rows["raw_data"]:
+                    parts = raw_data.split("_")
+                    if len(parts) != 2:
+                        raise DataValidationError(
+                            f"Invalid data format. Expected 'id_value', got '{raw_data}'"
+                        )
+                    try:
+                        result.append(int(parts[0]))
+                    except ValueError:
+                        raise DataValidationError(
+                            f"Invalid ID format in '{raw_data}': expected integer"
+                        )
 
-            return result
+                return result
 
         except (DataValidationError, DataProcessingError) as e:
             raise e

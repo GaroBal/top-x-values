@@ -59,4 +59,9 @@
     flake8 . --exclude venv
     ```
    
+### Visualizing the Performance
 
+1. To visualize the performance of the application, use the following command:
+    ```sh
+    snakeviz profiles/get_top_values_XXXXXXX.stats
+    ```
