@@ -26,7 +26,13 @@
 
 ### Running the Application
 
-1. To run the application, use the following command:
+
+1. Generate the dataset that will be used by the application:
+    ```sh
+    python3 data_script.py
+    ```
+
+2. To run the application, use the following command:
     ```sh
     python3 main.py
     ```

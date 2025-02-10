@@ -1,42 +1,101 @@
-from typing import List
+import multiprocessing
+from pathlib import Path
+from typing import List, Optional
 
-import dask.dataframe as dd
-import pandas as pd
+from dask.distributed import Client
+
+from app.exceptions import DataProcessingError, DataValidationError
+from app.utils import validate_and_extract_value, read_dataframe
 
 
 class DataService:
-    def __init__(self, data_path: str):
-        self.data_path = data_path
+    """Service class for processing large datasets using Dask. Determines the Top X Values in the given dataset."""
+
+    DEFAULT_WORKERS = max(1, multiprocessing.cpu_count() - 1)
+
+    def __init__(
+        self,
+        data_path: str,
+        partition_size: str = "64MB",
+        num_workers: Optional[int] = None,
+    ):
+        """
+        Args:
+            data_path: Path to parquet file
+            partition_size: Size of Dask partitions
+            num_workers: Optional number of workers (defaults to CPU cores - 1)
+        """
+        if not data_path:
+            raise ValueError("Data path must be provided")
+
+        self.data_path = Path(data_path)
+        if not self.data_path.exists():
+            raise ValueError(f"Data path does not exist: {data_path}")
+
+        self.partition_size = partition_size
+
+        try:
+            workers_to_use = (
+                num_workers if num_workers is not None else self.DEFAULT_WORKERS
+            )
+            self.client = Client(n_workers=workers_to_use)
+        except Exception as e:
+            raise DataProcessingError(f"Failed to initialize Dask client: {str(e)}")
+
 
     def get_top_values(self, x: int) -> List[int]:
         """
-        Get top X values from the dataset.
+        Get Top X Values using Dask's nlargest functionality.
+
+        Args:
+            x: Number of top values to return
+
+        Returns:
+            List of top X IDs
         """
-        # Read CSV in chunks using Dask
-        df = dd.read_csv(
-            self.data_path, header=None, names=["raw_data"], blocksize="64MB"
-        )
+        try:
+            df = read_dataframe(data_path=self.data_path, partition_size=self.partition_size)
 
-        # Process chunks
-        def process_chunk(chunk):
-            chunk[["id", "value"]] = chunk["raw_data"].str.split("_", expand=True)
-            chunk["id"] = chunk["id"].astype(int)
-            chunk["value"] = chunk["value"].astype(int)
-            return chunk[["id", "value"]]
+            # Add computed value column with proper error handling
+            df["value"] = df["raw_data"].map(
+                validate_and_extract_value, meta=("value", "int64")
+            )
 
-        # Define meta for the output DataFrame
-        meta = pd.DataFrame(
-            {"id": pd.Series(dtype="int"), "value": pd.Series(dtype="int")}
-        )
+            # First get top X values per partition
+            per_partition_tops = df.map_partitions(
+                lambda pdf: pdf.nlargest(x, "value")
+            )
 
-        processed_df = df.map_partitions(process_chunk, meta=meta)
-        # Get top X values from each partition
-        tops_per_partition = processed_df.map_partitions(
-            lambda partition: partition.nlargest(x, "value"), enforce_metadata=False
-        )
+            # Then get global top X from the per-partition results
+            top_rows = per_partition_tops.nlargest(x, "value").compute()
 
-        # Compute final results and get overall top X
-        final_df = tops_per_partition.compute()
-        result = final_df.nlargest(x, "value")["id"].tolist()
 
-        return result
+            # Extract and validate IDs
+            result = []
+            for raw_data in top_rows["raw_data"]:
+                parts = raw_data.split("_")
+                if len(parts) != 2:
+                    raise DataValidationError(
+                        f"Invalid data format. Expected 'id_value', got '{raw_data}'"
+                    )
+                try:
+                    result.append(int(parts[0]))
+                except ValueError:
+                    raise DataValidationError(
+                        f"Invalid ID format in '{raw_data}': expected integer"
+                    )
+
+            return result
+
+        except (DataValidationError, DataProcessingError) as e:
+            raise e
+        except Exception as e:
+            raise DataProcessingError(f"Unexpected error processing data: {str(e)}")
+
+    def __del__(self):
+        """Cleanup Dask client if it exists."""
+        try:
+            if hasattr(self, "client"):
+                self.client.close()
+        except Exception:
+            pass  # Suppress errors during cleanup

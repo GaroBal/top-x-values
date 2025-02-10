@@ -1,8 +1,8 @@
 import numpy as np
-from tqdm import tqdm
+import psutil
 import pyarrow as pa
 import pyarrow.parquet as pq
-import psutil
+from tqdm import tqdm
 
 
 def get_optimal_chunk_size(n_entries: int, safety_factor: float = 0.5) -> int:
@@ -43,20 +43,25 @@ def generate_dataset_chunked(n_entries: int, output_file: str):
 
     try:
         # Start with debug entries
-        debug_table_start = pa.Table.from_arrays([pa.array(debug_pairs_start)], names=['raw_data'])
+        debug_table_start = pa.Table.from_arrays(
+            [pa.array(debug_pairs_start)], names=["raw_data"]
+        )
 
         # Initialize writer with debug entries
-        writer = pq.ParquetWriter(output_file, debug_table_start.schema, write_statistics=False)
+        writer = pq.ParquetWriter(
+            output_file, debug_table_start.schema, write_statistics=False
+        )
         writer.write_table(debug_table_start)
 
         # Now generate and write the main data in chunks
-        for chunk_start in tqdm(range(0, n_entries, chunk_size), desc="Generating chunks"):
+        for chunk_start in tqdm(
+            range(0, n_entries, chunk_size), desc="Generating chunks"
+        ):
             chunk_size_actual = min(chunk_size, n_entries - chunk_start)
 
             # Generate sequential IDs for this chunk
             chunk_ids = np.arange(
-                chunk_start + 1,  # Start from 1
-                chunk_start + chunk_size_actual + 1
+                chunk_start + 1, chunk_start + chunk_size_actual + 1  # Start from 1
             )
 
             # Generate random values with controlled maximum
@@ -64,22 +69,21 @@ def generate_dataset_chunked(n_entries: int, output_file: str):
 
             # Create combined id_value strings
             id_value = np.char.add(
-                np.char.add(
-                    chunk_ids.astype(str),
-                    np.full(chunk_size_actual, '_')
-                ),
-                values.astype(str)
+                np.char.add(chunk_ids.astype(str), np.full(chunk_size_actual, "_")),
+                values.astype(str),
             )
 
             # Convert to Arrow array and create table
-            table = pa.Table.from_arrays([pa.array(id_value)], names=['raw_data'])
+            table = pa.Table.from_arrays([pa.array(id_value)], names=["raw_data"])
             writer.write_table(table)
 
             # Clean up memory
             del chunk_ids, values, id_value, table
 
             # Write debug pairs end
-            debug_table_end = pa.Table.from_arrays([pa.array(debug_pairs_end)], names=['raw_data'])
+            debug_table_end = pa.Table.from_arrays(
+                [pa.array(debug_pairs_end)], names=["raw_data"]
+            )
             writer.write_table(debug_table_end)
 
     finally:
