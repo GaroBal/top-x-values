@@ -9,11 +9,6 @@ from main import app
 class TestHandler(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
-        self.patcher = patch("app.profiling.profile_context", lambda x: x)
-        self.patcher.start()
-
-    def tearDown(self):
-        self.patcher.stop()
 
     def test_ping_endpoint(self):
         response = self.client.get("/api/ping")
