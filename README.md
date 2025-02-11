@@ -40,7 +40,19 @@
     ./dependencies.sh
     ```
 
-The setup script will create a virtual environment, install all required dependencies, and activate the environment for you.
+The setup script will create a virtual environment and install the required dependencies.
+
+2. Activate the virtual environment:
+
+    Windows:
+    ```cmd
+    .\venv\Scripts\Activate
+    ```
+
+    macOS:
+    ```sh
+    source venv/bin/activate
+    ```
 
 
 ### Running the Application
@@ -49,12 +61,12 @@ The setup script will create a virtual environment, install all required depende
 
     Windows:
     ```cmd
-    python data_script.py
+    python .\data\data_script.py
     ```
 
     macOS:
     ```sh
-    python3 data_script.py
+    python3 data/data_script.py
     ```
 
 2. Run the application:
@@ -73,17 +85,17 @@ The setup script will create a virtual environment, install all required depende
 
     Windows (PowerShell):
     ```powershell
-    Invoke-RestMethod -Uri 'http://localhost:8000/api/top-values?x=10&data_path=<path_to_data_file>'
+    Invoke-RestMethod -Uri 'http://localhost:8000/api/top-values?x=<desired_size>&data_path=<path_to_data_file>'
     ```
 
     Windows (Command Prompt):
     ```cmd
-    curl -L "http://localhost:8000/api/top-values?x=10&data_path=<path_to_data_file>"
+    curl -L "http://localhost:8000/api/top-values?x=<desired_size>&data_path=<path_to_data_file>"
     ```
 
     macOS:
     ```sh
-    curl -L 'http://localhost:8000/api/top-values?x=10&data_path=<path_to_data_file>'
+    curl -L 'http://localhost:8000/api/top-values?x=<desired_size>&data_path=<path_to_data_file>'
     ```
 
 ### Running Tests
