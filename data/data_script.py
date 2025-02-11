@@ -5,6 +5,14 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from tqdm import tqdm
 
+"""
+Script ran to generate locally used data for testing purposes.
+
+- Implemented Memory Aware Chunking to generate large datasets without running out of memory.
+
+Future Improvements:
+- Write directly to S3 Bucket to generate an extremely large dataset.
+"""
 
 def get_optimal_chunk_size(n_entries: int, safety_factor: float = 0.5) -> int:
     """Calculate optimal chunk size based on available system memory."""
@@ -33,17 +41,17 @@ def generate_dataset_chunked(n_entries: int, output_file: str):
 
     # Create debug pairs first
     debug_pairs_start = [
-        f"{max_int64}_{max_int64}",
-        f"{max_int64 - 1}_{max_int64 - 1}",
-        f"{max_int64 - 2}_{max_int64 - 2}",
-        f"{max_int64 - 3}_{max_int64 - 3}",
+        f"1_{max_int64}",
+        f"2_{max_int64 - 1}",
+        f"3_{max_int64 - 2}",
+        f"4_{max_int64 - 3}",
     ]
 
     debug_pairs_end = [
-        f"{max_int64 - 4}_{max_int64 -4}",
-        f"{max_int64 - 5}_{max_int64 - 5}",
-        f"{max_int64 - 6}_{max_int64 - 6}",
-        f"{max_int64 - 7}_{max_int64 - 7}",
+        f"5_{max_int64 -4}",
+        f"6_{max_int64 - 5}",
+        f"7_{max_int64 - 6}",
+        f"8_{max_int64 - 7}",
     ]
 
     try:
@@ -60,7 +68,7 @@ def generate_dataset_chunked(n_entries: int, output_file: str):
 
         # Now generate and write the main data in chunks
         for chunk_start in tqdm(
-            range(0, n_entries, chunk_size), desc="Generating chunks"
+            range(10, n_entries, chunk_size), desc="Generating chunks"
         ):
             chunk_size_actual = min(chunk_size, n_entries - chunk_start)
 
@@ -98,9 +106,9 @@ def generate_dataset_chunked(n_entries: int, output_file: str):
 
 # Configuration for different dataset sizes
 datasets = {
-    "small": 1000000,
-    "medium": 10000000,
-    "large": 100000000,
+    "small": 1000000, # 1M
+    "medium": 10000000, # 10M
+    "large": 100000000, # 100M
 }
 
 for size, n_entries in datasets.items():
