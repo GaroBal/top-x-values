@@ -20,6 +20,7 @@ class DataService:
     - Evaluate possible alternative strategies for processing the data, such as probabilistic approaches or statistical sampling.
     - Possibly implement said strategies in a hybrid approach to account for different data sizes and requested Top X values.
     """
+
     DEFAULT_WORKERS = max(1, multiprocessing.cpu_count() - 1)
 
     def __init__(
@@ -67,9 +68,7 @@ class DataService:
             )
 
             # First get top X values per partition
-            per_partition_tops = df.map_partitions(
-                lambda pdf: pdf.nlargest(x, "value")
-            )
+            per_partition_tops = df.map_partitions(lambda pdf: pdf.nlargest(x, "value"))
 
             with profile_context("global_tops"):
                 # Then get global top X from the per-partition results

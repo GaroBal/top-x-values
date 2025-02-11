@@ -1,4 +1,5 @@
 import os
+
 import numpy as np
 import psutil
 import pyarrow as pa
@@ -13,6 +14,7 @@ Script ran to generate locally used data for testing purposes.
 Future Improvements:
 - Write directly to S3 Bucket to generate an extremely large dataset.
 """
+
 
 def get_optimal_chunk_size(n_entries: int, safety_factor: float = 0.5) -> int:
     """Calculate optimal chunk size based on available system memory."""
@@ -106,9 +108,9 @@ def generate_dataset_chunked(n_entries: int, output_file: str):
 
 # Configuration for different dataset sizes
 datasets = {
-    "small": 1000000, # 1M
-    "medium": 10000000, # 10M
-    "large": 100000000, # 100M
+    "small": 1000000,  # 1M
+    "medium": 10000000,  # 10M
+    "large": 100000000,  # 100M
 }
 
 for size, n_entries in datasets.items():
