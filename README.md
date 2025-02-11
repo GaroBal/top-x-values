@@ -2,11 +2,11 @@
 
 ## Setup Instructions
 
-
-
 ### Prerequisites
 
-- Ensure you have Python 3.9 or higher installed on your system. You can download it from [python.org](https://www.python.org/downloads/).
+- Python 3.9 or higher installed on your system
+  - For Windows: Download from [python.org](https://www.python.org/downloads/) and ensure you check "Add Python to PATH" during installation
+  - For macOS: Download from [python.org](https://www.python.org/downloads/) or install via Homebrew: `brew install python@3.9`
 
 ### Clone the Repository
 
@@ -14,65 +14,117 @@
     ```sh
     git clone https://github.com/GaroBal/top-x-values.git
     ```
+   
 2. Navigate to the project directory:
+    - Windows (Command Prompt):
+    ```cmd
+    cd top-x-values
+    ```
+    - macOS (Terminal):
     ```sh
     cd top-x-values
     ```
 
 ### Install Dependencies
 
-1. Create a virtual environment, and install the dependencies using the following command:
-    ```sh
-    source ./dependencies.sh
+1. Use the appropriate setup script for your operating system:
+
+    Windows (Command Prompt):
+    ```cmd
+    dependencies.bat
     ```
+
+    macOS (Terminal):
+    ```sh
+    chmod +x dependencies.sh  # Make the script executable (first time only)
+    ./dependencies.sh
+    ```
+
+The setup script will create a virtual environment, install all required dependencies, and activate the environment for you.
+
 
 ### Running the Application
 
+1. Generate the dataset (approx. 2.5 GB, 1.5 min to generate):
 
-1. Generate the dataset that will be used by the application (approx. 2.5 GB, 1.5 min to generate):
+    Windows:
+    ```cmd
+    python data_script.py
+    ```
+
+    macOS:
     ```sh
     python3 data_script.py
     ```
 
-2. To run the application, use the following command:
+2. Run the application:
+
+    Windows:
+    ```cmd
+    python main.py
+    ```
+
+    macOS:
     ```sh
     python3 main.py
     ```
 
-3. To make a request to the application, use the following command:
+3. Make a request to the application:
+
+    Windows (PowerShell):
+    ```powershell
+    Invoke-RestMethod -Uri 'http://localhost:8000/api/top-values?x=10&data_path=<path_to_data_file>'
+    ```
+
+    Windows (Command Prompt):
+    ```cmd
+    curl -L "http://localhost:8000/api/top-values?x=10&data_path=<path_to_data_file>"
+    ```
+
+    macOS:
     ```sh
     curl -L 'http://localhost:8000/api/top-values?x=10&data_path=<path_to_data_file>'
     ```
 
 ### Running Tests
 
-1. To run the tests, use the following command:
-    ```sh
-    python3 -m unittest discover -s tests
-    ```
+Windows:
+```cmd
+python -m unittest discover -s tests
+```
+
+macOS:
+```sh
+python3 -m unittest discover -s tests
+```
 
 ### Linting and Formatting
 
-1. To check code formatting with `black`:
-    ```sh
-    black --check . --exclude venv
-    ```
-2. To check import sorting with `isort`:
-    ```sh
-    isort --check-only . --skip venv
-    ```
-3. To run `flake8` for linting:
-    ```sh
-    flake8 . --exclude venv
-    ```
-   
+Windows:
+```cmd
+black --check . --exclude venv
+isort --check-only . --skip venv
+flake8 . --exclude venv
+```
+
+macOS:
+```sh
+black --check . --exclude venv
+isort --check-only . --skip venv
+flake8 . --exclude venv
+```
+
 ### Visualizing the Performance
 
-1. To visualize the performance of the application, use the following command:
-    ```sh
-    snakeviz profiles/<timestamp>/get_top_values.stats
-    ```
-   
+Windows:
+```cmd
+snakeviz profiles\<timestamp>\get_top_values.stats
+```
+
+macOS:
+```sh
+snakeviz profiles/<timestamp>/get_top_values.stats
+```
 
 ### Code Commentary
 
