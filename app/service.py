@@ -1,6 +1,6 @@
 import multiprocessing
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 from dask.distributed import Client
 
@@ -10,7 +10,16 @@ from app.utils import read_dataframe, validate_and_extract_value
 
 
 class DataService:
-    """Service class for processing large datasets using Dask. Determines the Top X Values in the given dataset."""
+    """
+    Service class for processing large datasets using Dask.
+    Determines the Top X Values in the given dataset.
+
+    Future improvements:
+    - Read the dataset from an S3 bucket, to be able to process extremely large datasets.
+    - Evaluate different partition sizes to optimize performance based on profiler data collected.
+    - Evaluate possible alternative strategies for processing the data, such as probabilistic approaches or statistical sampling.
+    - Possibly implement said strategies in a hybrid approach to account for different data sizes and requested Top X values.
+    """
 
     DEFAULT_WORKERS = max(1, multiprocessing.cpu_count() - 1)
 
@@ -18,13 +27,11 @@ class DataService:
         self,
         data_path: str,
         partition_size: str = "64MB",
-        num_workers: Optional[int] = None,
     ):
         """
         Args:
             data_path: Path to parquet file
             partition_size: Size of Dask partitions
-            num_workers: Optional number of workers (defaults to CPU cores - 1)
         """
         if not data_path:
             raise ValueError("Data path must be provided")
@@ -36,10 +43,7 @@ class DataService:
         self.partition_size = partition_size
 
         try:
-            workers_to_use = (
-                num_workers if num_workers is not None else self.DEFAULT_WORKERS
-            )
-            self.client = Client(n_workers=workers_to_use)
+            self.client = Client(n_workers=self.DEFAULT_WORKERS)
         except Exception as e:
             raise DataProcessingError(f"Failed to initialize Dask client: {str(e)}")
 
@@ -54,22 +58,17 @@ class DataService:
             List of top X IDs
         """
         try:
-            with profile_context("read_dataframe"):
-                df = read_dataframe(
-                    data_path=self.data_path, partition_size=self.partition_size
-                )
+            df = read_dataframe(
+                data_path=self.data_path, partition_size=self.partition_size
+            )
 
-            with profile_context("compute_value_column"):
-                # Add computed value column with proper error handling
-                df["value"] = df["raw_data"].map(
-                    validate_and_extract_value, meta=("value", "int64")
-                )
+            # Add computed value column with proper error handling
+            df["value"] = df["raw_data"].map(
+                validate_and_extract_value, meta=("value", "int64")
+            )
 
-            with profile_context("partition_tops"):
-                # First get top X values per partition
-                per_partition_tops = df.map_partitions(
-                    lambda pdf: pdf.nlargest(x, "value")
-                )
+            # First get top X values per partition
+            per_partition_tops = df.map_partitions(lambda pdf: pdf.nlargest(x, "value"))
 
             with profile_context("global_tops"):
                 # Then get global top X from the per-partition results
