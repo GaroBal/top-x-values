@@ -17,7 +17,7 @@ class DataService:
     Future improvements:
     - Read the dataset from an S3 bucket, to be able to process extremely large datasets.
     - Evaluate different partition sizes to optimize performance based on profiler data collected.
-    - Evaluate possible alternative strategies for processing the data, such as probabilistic approaches or statistical methods
+    - Evaluate possible alternative strategies for processing the data, such as probabilistic approaches or statistical sampling.
     - Possibly implement said strategies in a hybrid approach to account for different data sizes and requested Top X values.
     """
     DEFAULT_WORKERS = max(1, multiprocessing.cpu_count() - 1)
@@ -57,22 +57,19 @@ class DataService:
             List of top X IDs
         """
         try:
-            with profile_context("read_dataframe"):
-                df = read_dataframe(
-                    data_path=self.data_path, partition_size=self.partition_size
-                )
+            df = read_dataframe(
+                data_path=self.data_path, partition_size=self.partition_size
+            )
 
-            with profile_context("compute_value_column"):
-                # Add computed value column with proper error handling
-                df["value"] = df["raw_data"].map(
-                    validate_and_extract_value, meta=("value", "int64")
-                )
+            # Add computed value column with proper error handling
+            df["value"] = df["raw_data"].map(
+                validate_and_extract_value, meta=("value", "int64")
+            )
 
-            with profile_context("partition_tops"):
-                # First get top X values per partition
-                per_partition_tops = df.map_partitions(
-                    lambda pdf: pdf.nlargest(x, "value")
-                )
+            # First get top X values per partition
+            per_partition_tops = df.map_partitions(
+                lambda pdf: pdf.nlargest(x, "value")
+            )
 
             with profile_context("global_tops"):
                 # Then get global top X from the per-partition results
