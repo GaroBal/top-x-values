@@ -31,9 +31,3 @@ echo "Installing dependencies..."
 venv/bin/pip3 install -r requirements.txt
 
 echo "Dependencies installed successfully!"
-echo "Activating virtual environment..."
-
-# Activate the virtual environment
-source venv/bin/activate  # For Linux/macOS
-
-echo "Virtual environment activated. You can now run your application."
